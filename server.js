@@ -4,7 +4,9 @@ var bodyParser = require('body-parser');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+
 var mongoose = require('mongoose');
+mongoose.Promise = Promise;
 
 
 app.use(express.static(__dirname));
@@ -34,29 +36,30 @@ app.get('/messages', (req, res) => {
 
 
 
-app.post('/messages', (req, res) => {
-    var message = new Message(req.body);
-    message.save()
-    .then(() => {
-        io.emit('message', req.body);
+app.post('/messages', async (req, res) => {
 
-        Message.findOne({message: "badword"}).then(document => {
-            if(document) {
-                console.log("Found Censored word ", document);
-                Message.deleteOne({_id: document.id}).then(err => {
-                    console.log("Removed the censored message");
-                })
-            }
-        }).catch(err => {
-            console.log("An error occured ", err);
-        });
+    try {
+        var message = new Message(req.body);
 
-        res.sendStatus(200);
-      })
-      .catch(err => {
+        await message.save();
+        console.log("saved");
+
+        var censored = await Message.findOne({message: 'badword'})
+
+        if(censored) 
+            await Message.deleteOne({_id: censored.id});
+        else
+            io.emit('message', req.body);
+        res.sendStatus(200)
+    } catch (error) {
         res.sendStatus(500);
-      });
-});
+        return console.error(error);
+    } finally {
+        console.log('message post called');
+    }
+})
+
+
 
 
 

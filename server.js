@@ -1,7 +1,6 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 
-
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -41,19 +40,21 @@ app.post('/messages', (req, res) => {
     .then(() => {
         io.emit('message', req.body);
 
-        Message.findOne({message: 'badword'}, (err, censored) => {
-            if(censored) {
-                console.log('censored words found', censored);
-                Message.remove({_id: censored.id}, (err) => {
-                    console.log('removed censored message')
+        Message.findOne({message: "badword"}).then(document => {
+            if(document) {
+                console.log("Found Censored word ", document);
+                Message.deleteOne({_id: document.id}).then(err => {
+                    console.log("Removed the censored message");
                 })
             }
+        }).catch(err => {
+            console.log("An error occured ", err);
         });
 
         res.sendStatus(200);
       })
       .catch(err => {
-        sendStatus(500);
+        res.sendStatus(500);
       });
 });
 

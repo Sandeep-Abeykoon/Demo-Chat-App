@@ -40,6 +40,16 @@ app.post('/messages', (req, res) => {
     message.save()
     .then(() => {
         io.emit('message', req.body);
+
+        Message.findOne({message: 'badword'}, (err, censored) => {
+            if(censored) {
+                console.log('censored words found', censored);
+                Message.remove({_id: censored.id}, (err) => {
+                    console.log('removed censored message')
+                })
+            }
+        });
+
         res.sendStatus(200);
       })
       .catch(err => {
